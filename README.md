@@ -22,14 +22,14 @@ cp .env.example .env   # add your GROQ_API_KEY (and optionally DEEPGRAM_API_KEY)
 npm start
 ```
 
-Open http://localhost:3002, then hold the button or the space bar and talk.
+Open http://localhost:3002, then tap the orb (or press Space) once. It listens continuously: just talk, pause, and it replies. Talk over it to interrupt. Tap again to end the session.
 
 ## Status
 
 - [x] Push-to-talk loop with streamed LLM replies
 - [x] Sentence-level TTS, barge-in (talking interrupts the assistant)
 - [x] Per-turn latency readout
-- [ ] Hands-free mode with VAD
+- [x] Hands-free mode (voice-activity detection, auto turn-taking)
 - [ ] Persistent memory, tools / web search
 - [ ] Deployment
 

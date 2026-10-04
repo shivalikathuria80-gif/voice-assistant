@@ -91,6 +91,8 @@ wss.on("connection", (ws) => {
       const audio = Buffer.concat(chunks);
       chunks = [];
       if (audio.length) handleTurn(audio);
+    } else if (msg.type === "cancel") {
+      chunks = [];
     } else if (msg.type === "interrupt") {
       abort?.abort();
     }

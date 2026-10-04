@@ -10,7 +10,8 @@
     html,body { height:100%; margin:0; }
     body { background:radial-gradient(1200px 700px at 50% 45%, #121634 0%, var(--bg) 70%); color:var(--text);
            font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; overflow:hidden; user-select:none; }
-    body[data-state=listening] { --c1:#ff5c7a; --c2:#ffb44d; --c3:#ff5ccf; }
+    body[data-state=listening] { --c1:#5c8bff; --c2:#22d3ee; --c3:#a95cff; }
+    body[data-hearing=true] { --c1:#ff5c7a; --c2:#ffb44d; --c3:#ff5ccf; }
     body[data-state=thinking]  { --c1:#4d7cff; --c2:#a95cff; --c3:#22d3ee; }
     body[data-state=speaking]  { --c1:#22d3ee; --c2:#7c5cff; --c3:#4dffb0; }
 
@@ -36,8 +37,9 @@
     .gloss { position:absolute; inset:0; border-radius:50%;
              background:radial-gradient(circle at 32% 24%, rgba(255,255,255,.35), transparent 34%); mix-blend-mode:overlay; }
     .ring { position:absolute; inset:-14px; border-radius:50%; border:1px solid color-mix(in srgb,var(--c2) 50%,transparent); opacity:0; }
-    body[data-state=listening] .ring { animation:ripple 1.6s ease-out infinite; }
-    body[data-state=listening] .ring:nth-child(2) { animation-delay:.8s; }
+    body[data-hearing=true] .ring { animation:ripple 1.6s ease-out infinite; }
+    body[data-hearing=true] .ring:nth-child(2) { animation-delay:.8s; }
+    body[data-state=listening] .orb { animation:float 6s ease-in-out infinite; }
     body[data-state=thinking] .core { animation:spin 2.2s linear infinite; }
     body[data-state=speaking] .orb { animation:talk .9s ease-in-out infinite; }
     body[data-state=idle] .orb { animation:float 6s ease-in-out infinite; }
@@ -54,7 +56,7 @@
   </style>
 </head>
 <body data-state="idle">
-  <div id="state">tap the orb to talk</div>
+  <div id="state">tap the orb to start</div>
   <div id="you" class="caption"></div>
   <div class="stage">
     <button class="orb" id="orb" aria-label="Talk to assistant">
