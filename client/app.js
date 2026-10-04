@@ -85,6 +85,7 @@ ws.onmessage = (e) => {
     case "user": $("you").textContent = `“${msg.text}”`; $("bot").textContent = ""; break;
     case "token": $("bot").textContent += msg.text; break;
     case "speak": speakBrowser(msg.text); break;
+    case "memory": $("mem").textContent = msg.count ? `${msg.count} ${msg.count === 1 ? "memory" : "memories"}` : ""; break;
     case "done":
       serverBusy = false;
       $("stats").textContent = `STT ${msg.timings.sttMs} ms · first token ${msg.timings.firstTokenMs} ms · total ${msg.timings.totalMs} ms`;

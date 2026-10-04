@@ -16,3 +16,9 @@ Server -> client: `status`, `user`, `token`, `speak`, `audio` (followed by a bin
 - Swap the energy-based VAD in `client/app.js` for `@ricky0123/vad-web` (neural) if background noise causes false triggers.
 - Stream STT (Deepgram live) to cut transcription latency.
 - Persist history per user (Supabase) and add tool calls.
+
+## Memory
+`server/memory.js` stores two things in `data/memory.json` (git-ignored, single user):
+- **History**: the last 30 messages, reloaded on every connection so conversations survive restarts.
+- **Facts**: short durable statements about the user. After each turn a background LLM call (`MEMORY_MODEL`, defaults to `LLM_MODEL`) returns `{add, remove}`, which is merged into the list (max 40). Facts are appended to the system prompt on each turn.
+Saying "forget everything" or "clear your memory" wipes both.

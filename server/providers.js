@@ -50,6 +50,31 @@ export async function chat(messages, onToken, signal) {
   return full;
 }
 
+// Non-streaming call that returns parsed JSON ({} on any failure). Used for background memory extraction.
+export async function chatJSON(messages) {
+  try {
+    const res = await fetch(`${GROQ}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.MEMORY_MODEL || process.env.LLM_MODEL || "llama-3.3-70b-versatile",
+        messages,
+        response_format: { type: "json_object" },
+        temperature: 0,
+      }),
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const text = (await res.json()).choices?.[0]?.message?.content ?? "{}";
+    return JSON.parse(text.replace(/<think>[\s\S]*?<\/think>/g, "").trim());
+  } catch (err) {
+    console.warn("memory extraction failed:", err.message);
+    return {};
+  }
+}
+
 // Returns an MP3 Buffer, or null when no TTS key is configured (client falls back to speechSynthesis).
 export async function synthesize(text) {
   if (process.env.ELEVENLABS_API_KEY) return synthesizeEleven(text);

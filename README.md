@@ -30,7 +30,9 @@ Open http://localhost:3002, then tap the orb (or press Space) once. It listens c
 - [x] Sentence-level TTS, barge-in (talking interrupts the assistant)
 - [x] Per-turn latency readout
 - [x] Hands-free mode (voice-activity detection, auto turn-taking)
-- [ ] Persistent memory, tools / web search
+- [x] Persistent memory (conversation history + long-term facts, saved in `data/memory.json`; say "forget everything" to wipe)
+- [ ] MCP tool calls
+- [ ] Computer control
 - [ ] Deployment
 
 See [docs/architecture.md](docs/architecture.md).

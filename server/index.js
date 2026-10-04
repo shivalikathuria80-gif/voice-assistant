@@ -4,6 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { transcribe, chat, synthesize, takeSentences } from "./providers.js";
+import { getFacts, getHistory, saveHistory, forgetAll, isForgetCommand, memoryPrompt, learnFrom } from "./memory.js";
+
+const BASE_PROMPT = process.env.SYSTEM_PROMPT || "You are a helpful voice assistant. Keep replies short.";
 
 const clientDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "client");
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
@@ -19,14 +22,14 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws) => {
-  const history = [
-    { role: "system", content: process.env.SYSTEM_PROMPT || "You are a helpful voice assistant. Keep replies short." },
-  ];
+  let history = getHistory();
   let mime = "audio/webm";
   let chunks = [];
   let abort = null;
 
   const send = (msg) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(msg));
+  const sendMemory = () => send({ type: "memory", count: getFacts().length });
+  sendMemory();
 
   async function handleTurn(audio) {
     abort?.abort();
@@ -39,6 +42,19 @@ wss.on("connection", (ws) => {
       if (!text) return send({ type: "status", value: "idle" });
       const tStt = Date.now() - t0;
       send({ type: "user", text });
+
+      if (isForgetCommand(text)) {
+        forgetAll();
+        history = [];
+        sendMemory();
+        const line = "Okay, I've cleared my memory. We're starting fresh.";
+        send({ type: "token", text: line });
+        const mp3 = await synthesize(line);
+        if (signal.aborted) return;
+        if (mp3) { send({ type: "audio", text: line }); ws.send(mp3); } else send({ type: "speak", text: line });
+        return send({ type: "done", timings: { sttMs: tStt, firstTokenMs: 0, totalMs: Date.now() - t0 } });
+      }
+
       history.push({ role: "user", content: text });
 
       send({ type: "status", value: "thinking" });
@@ -58,7 +74,7 @@ wss.on("connection", (ws) => {
       // Sentences are synthesized in order; TTS of sentence N overlaps LLM streaming.
       let speakChain = Promise.resolve();
       const reply = await chat(
-        history,
+        [{ role: "system", content: BASE_PROMPT + memoryPrompt() }, ...history],
         (token) => {
           firstToken ??= Date.now() - t0;
           send({ type: "token", text: token });
@@ -73,7 +89,11 @@ wss.on("connection", (ws) => {
       await speakChain;
 
       history.push({ role: "assistant", content: reply });
+      saveHistory(history);
       send({ type: "done", timings: { sttMs: tStt, firstTokenMs: firstToken, totalMs: Date.now() - t0 } });
+
+      // Background: extract durable facts without delaying the next turn.
+      learnFrom(text, reply).then((facts) => facts && sendMemory()).catch((e) => console.warn("memory:", e.message));
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error(err);
