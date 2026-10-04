@@ -12,7 +12,7 @@ Browser mic -> WebSocket -> STT (Groq Whisper) -> LLM (Groq Llama, streaming) ->
 |-------|----------|----------|
 | Speech-to-Text | Groq Whisper | yes |
 | LLM | Groq Llama 3.3 | yes |
-| Text-to-Speech | Deepgram Aura | no (falls back to the browser's `speechSynthesis`) |
+| Text-to-Speech | ElevenLabs or Deepgram Aura | no (falls back to the browser's `speechSynthesis`) |
 
 ## Run
 

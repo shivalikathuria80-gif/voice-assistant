@@ -52,6 +52,7 @@ export async function chat(messages, onToken, signal) {
 
 // Returns an MP3 Buffer, or null when no TTS key is configured (client falls back to speechSynthesis).
 export async function synthesize(text) {
+  if (process.env.ELEVENLABS_API_KEY) return synthesizeEleven(text);
   if (!process.env.DEEPGRAM_API_KEY) return null;
   const voice = process.env.TTS_VOICE || "aura-asteria-en";
   const res = await fetch(`https://api.deepgram.com/v1/speak?model=${voice}&encoding=mp3`, {
@@ -61,6 +62,18 @@ export async function synthesize(text) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function synthesizeEleven(text) {
+  const voice = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"; // "Rachel"
+  const model = process.env.ELEVENLABS_MODEL || "eleven_flash_v2_5"; // lowest latency
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
+    method: "POST",
+    headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ text, model_id: model }),
   });
   if (!res.ok) throw new Error(`TTS ${res.status}: ${await res.text()}`);
   return Buffer.from(await res.arrayBuffer());
