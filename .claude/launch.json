@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "voice-assistant", "runtimeExecutable": "node", "runtimeArgs": ["server/index.js"], "port": 3002 }
+    { "name": "voice-assistant", "runtimeExecutable": "node", "runtimeArgs": ["--env-file=.env", "server/index.js"], "port": 3002 }
   ]
 }
