@@ -21,6 +21,14 @@
     #bot { bottom:5vh; font-size:clamp(18px,2.6vw,26px); font-weight:500; min-height:80px; text-shadow:0 2px 30px #000; }
     #state { position:fixed; top:20px; left:0; right:0; text-align:center; font-size:12px; letter-spacing:.25em; text-transform:uppercase; color:var(--muted); }
     #mem { position:fixed; top:20px; right:20px; font-size:12px; color:var(--muted); letter-spacing:.1em; }
+    #tool { position:fixed; top:46px; left:0; right:0; text-align:center; font-size:13px; color:var(--c2); min-height:20px; }
+    #confirm { position:fixed; left:50%; bottom:22vh; transform:translateX(-50%); display:flex; align-items:center; gap:12px; padding:10px 14px;
+               background:rgba(24,27,34,.85); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.1); border-radius:999px; max-width:92vw; }
+    #confirm[hidden] { display:none; }
+    #confirm span { font-size:14px; }
+    #confirm button { border:0; border-radius:999px; padding:6px 16px; font:inherit; font-size:14px; cursor:pointer; }
+    #allow { background:#4dffb0; color:#06180f; }
+    #deny { background:#2a2f3d; color:var(--text); }
     #stats { position:fixed; bottom:16px; left:0; right:0; text-align:center; font-size:12px; color:#4b5166; }
 
     /* The orb */
@@ -58,6 +66,7 @@
 </head>
 <body data-state="idle">
   <div id="state">tap the orb to start</div>
+  <div id="tool"></div>
   <div id="mem"></div>
   <div id="you" class="caption"></div>
   <div class="stage">
@@ -67,6 +76,7 @@
     </button>
   </div>
   <div id="bot" class="caption"></div>
+  <div id="confirm" hidden><span id="confirm-text"></span><button id="allow">Allow</button><button id="deny">Deny</button></div>
   <div id="stats"></div>
   <script src="app.js"></script>
 </body>

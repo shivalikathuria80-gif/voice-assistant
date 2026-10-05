@@ -34,6 +34,8 @@ let audioQueue = [];
 let playing = null;
 let serverBusy = false;
 let browserTts = 0;
+let awaitingConfirm = false;
+let confirmId = null;
 
 function setState(s) {
   state = s;
@@ -78,16 +80,31 @@ ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
   switch (msg.type) {
     case "status":
-      serverBusy = msg.value !== "idle";
-      if (serverBusy && !recorder) setState("thinking");
+      awaitingConfirm = msg.value === "confirm";
+      serverBusy = msg.value !== "idle" && !awaitingConfirm;
+      if (awaitingConfirm && !recorder) { setState("listening"); $("state").textContent = "say yes or no"; }
+      else if (serverBusy && !recorder) setState("thinking");
       if (!serverBusy) settle();
       break;
-    case "user": $("you").textContent = `“${msg.text}”`; $("bot").textContent = ""; break;
+    case "user": $("you").textContent = `“${msg.text}”`; if (!awaitingConfirm) $("bot").textContent = ""; $("tool").textContent = ""; break;
     case "token": $("bot").textContent += msg.text; break;
     case "speak": speakBrowser(msg.text); break;
+    case "tool": $("tool").textContent = msg.text; break;
+    case "confirm":
+      confirmId = msg.id;
+      $("confirm-text").textContent = `Allow me to ${msg.text}?`;
+      $("confirm").hidden = false;
+      break;
+    case "confirm_done":
+      awaitingConfirm = false;
+      confirmId = null;
+      $("confirm").hidden = true;
+      if (!playing && !browserTts) setState(serverBusy ? "thinking" : session ? "listening" : "idle");
+      break;
     case "memory": $("mem").textContent = msg.count ? `${msg.count} ${msg.count === 1 ? "memory" : "memories"}` : ""; break;
     case "done":
       serverBusy = false;
+      $("tool").textContent = "";
       $("stats").textContent = `STT ${msg.timings.sttMs} ms · first token ${msg.timings.firstTokenMs} ms · total ${msg.timings.totalMs} ms`;
       settle();
       break;
@@ -105,10 +122,12 @@ function rms() {
 
 function beginUtterance() {
   // Barge-in: user speech cuts off the assistant and any in-flight reply.
-  if (playing || audioQueue.length || browserTts || serverBusy) {
+  if (playing || audioQueue.length || browserTts || serverBusy || awaitingConfirm) {
     stopSpeaking();
-    ws.send(JSON.stringify({ type: "interrupt" }));
-    serverBusy = false;
+    if (!awaitingConfirm) { // a pending approval must survive: the user's next words are the answer
+      ws.send(JSON.stringify({ type: "interrupt" }));
+      serverBusy = false;
+    }
   }
   recorder = new MediaRecorder(stream);
   ws.send(JSON.stringify({ type: "start", mime: recorder.mimeType }));
@@ -122,7 +141,7 @@ function beginUtterance() {
   rec.start(250);
   document.body.dataset.hearing = "true";
   setState("listening");
-  $("you").textContent = "";
+  if (!awaitingConfirm) $("you").textContent = "";
 }
 
 function endUtterance(keep) {
@@ -197,3 +216,9 @@ function toggle() { session ? stopSession() : startSession(); }
 
 $("orb").addEventListener("click", toggle);
 addEventListener("keydown", (e) => { if (e.code === "Space" && !e.repeat) { e.preventDefault(); toggle(); } });
+
+function reply(ok) {
+  if (confirmId) ws.send(JSON.stringify({ type: "confirm_reply", id: confirmId, ok }));
+}
+$("allow").addEventListener("click", () => reply(true));
+$("deny").addEventListener("click", () => reply(false));

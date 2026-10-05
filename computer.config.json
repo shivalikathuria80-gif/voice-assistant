@@ -1,0 +1,11 @@
+{
+  "workspace": "workspace",
+  "apps": {
+    "notepad": "notepad.exe",
+    "calculator": "calc.exe",
+    "paint": "mspaint.exe",
+    "file explorer": "explorer.exe",
+    "edge": "msedge.exe",
+    "chrome": "chrome.exe"
+  }
+}
