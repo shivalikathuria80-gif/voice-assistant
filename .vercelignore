@@ -1,0 +1,8 @@
+.env
+.env.*
+data
+workspace
+mcp.config.json
+computer.config.json
+.claude
+node_modules

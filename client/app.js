@@ -16,8 +16,7 @@ const MAX_UTTERANCE_MS = 30000;
 const BASE_THRESHOLD = 0.02;
 const SPEAKING_THRESHOLD = 0.07; // higher while the assistant talks, to ignore speaker bleed
 
-const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
-ws.binaryType = "arraybuffer";
+const ws = createSocket(); // see transport.js
 
 let state = "idle";
 let session = false;   // hands-free conversation active

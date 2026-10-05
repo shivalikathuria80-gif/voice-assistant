@@ -7,13 +7,50 @@ const dataDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "d
 const file = path.join(dataDir, "memory.json");
 const MAX_FACTS = 40;
 const MAX_HISTORY = 30;
+const TABLE = "assistant_memory";
+const ROW_ID = "default";
 
 let store = { facts: [], history: [] };
-try {
-  store = { ...store, ...JSON.parse(fs.readFileSync(file, "utf8")) };
-} catch {}
 
-function save() {
+// Storage backend: Supabase when SUPABASE_URL + SUPABASE_SERVICE_KEY are set (hosted), otherwise a local JSON file.
+const supabase = () => process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY;
+const sbFetch = (query, init = {}) =>
+  fetch(`${process.env.SUPABASE_URL}/rest/v1/${TABLE}${query}`, {
+    ...init,
+    headers: {
+      apikey: process.env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      ...init.headers,
+    },
+  });
+
+// Refreshes the in-memory copy from storage. Call at the start of every turn (serverless instances share nothing).
+export async function loadMemory() {
+  try {
+    if (supabase()) {
+      const res = await sbFetch(`?id=eq.${ROW_ID}&select=facts,history`);
+      if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+      const [row] = await res.json();
+      store = { facts: row?.facts ?? [], history: row?.history ?? [] };
+    } else {
+      store = { facts: [], history: [], ...JSON.parse(fs.readFileSync(file, "utf8")) };
+    }
+  } catch (err) {
+    if (err.code !== "ENOENT") console.warn("memory load failed:", err.message);
+  }
+}
+
+async function persist() {
+  if (supabase()) {
+    const res = await sbFetch("?on_conflict=id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ id: ROW_ID, facts: store.facts, history: store.history, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+    return;
+  }
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(`${file}.tmp`, JSON.stringify(store, null, 2));
   fs.renameSync(`${file}.tmp`, file);
@@ -22,14 +59,14 @@ function save() {
 export const getFacts = () => [...store.facts];
 export const getHistory = () => [...store.history];
 
-export function saveHistory(history) {
+export async function saveHistory(history) {
   store.history = history.slice(-MAX_HISTORY);
-  save();
+  await persist();
 }
 
-export function forgetAll() {
+export async function forgetAll() {
   store = { facts: [], history: [] };
-  save();
+  await persist();
 }
 
 export const isForgetCommand = (text) =>
@@ -40,7 +77,7 @@ export function memoryPrompt() {
   return `\n\nThings you remember about the user (use naturally, never recite the list):\n${store.facts.map((f) => `- ${f}`).join("\n")}`;
 }
 
-// Runs in the background after a turn; returns the updated facts when something changed.
+// Runs after a turn; returns the updated facts when something changed.
 export async function learnFrom(userText, assistantText) {
   const result = await chatJSON([
     {
@@ -69,6 +106,6 @@ export async function learnFrom(userText, assistantText) {
   facts = facts.slice(-MAX_FACTS);
   if (facts.length === before && facts.every((f, i) => f === store.facts[i])) return null;
   store.facts = facts;
-  save();
+  await persist();
   return getFacts();
 }
